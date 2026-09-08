@@ -452,6 +452,9 @@ body:not(.nav-open) .sidebar{display:none}
 .amvpwrap{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px}
 .amvpwrap input{flex:1;min-width:180px;font:600 14px/1 inherit;padding:10px 11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--text)}
 .amvphint{font-size:11.5px;color:var(--muted);margin-top:7px}
+.proot .pl{flex:0 0 100%;display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-top:3px}
+.proot .pl:first-child{margin-top:0}
+.proot .ptwmvp{width:17px;height:17px;border-radius:50%;object-fit:cover;vertical-align:-4px;margin:0 4px 0 3px;background:var(--chip)}
 </style>
 </head>
 <body class="nav-open">
@@ -826,6 +829,8 @@ function renderPtw(){
   if(sel!=='overall'&&P.champs.indexOf(sel)<0)sel='overall';
   var pct=(sel==='overall')?P.overall:P.cond[sel];
   var players=DATA.players.slice().sort(function(a,b){return (pct[b.id]||0)-(pct[a.id]||0);});
+  var tieSet={};mvpScenarios().forEach(function(sc){if(sel!=='overall'&&sc.team!==sel)return;
+    sc.sets.forEach(function(st){if(st.leaders.length>1)st.leaders.forEach(function(x){tieSet[x]=true;});});});
   var chips='<div class="ptw-sel"><button class="pchip'+(sel==='overall'?' on':'')+'" data-ptw="overall">🏆 Overall</button>';
   if(P.champs.length>1)P.champs.forEach(function(Tm){chips+='<button class="pchip'+(sel===Tm?' on':'')+'" data-ptw="'+Tm+'">'+timg(Tm,'xs')+' '+Tm+'</button>';});
   chips+='</div>';
@@ -836,9 +841,13 @@ function renderPtw(){
   players.forEach(function(p){
     var raw=pct[p.id]||0,w=Math.round(raw*100),wtxt=(raw>0&&w===0)?'<1%':w+'%';
     var b=P.best[p.id]||[];
-    var root=(P.overall[p.id]===0)?'🙅 Can’t win the pool anymore'
-      :(b.length?'Needs the title to go to: '+b.map(function(Tm){return timg(Tm,'xs')+' '+Tm;}).join(' · '):'Needs a run of upsets');
-    if(sel==='overall'&&P.lead[p.id]>raw+0.001)root+=' · leads or ties in '+Math.round(P.lead[p.id]*100)+'%'+(mvpPending()?', MVP pick breaks it':'');
+    var lines=[];
+    if(P.overall[p.id]===0)lines.push('🙅 Can’t win the pool anymore');
+    else lines.push(b.length?('Needs the title to go to: '+b.map(function(Tm){return timg(Tm,'xs')+' '+Tm;}).join(' · ')):'Needs a run of upsets');
+    if(sel==='overall'&&P.lead[p.id]>raw+0.001)lines.push('Leads or ties in '+Math.round(P.lead[p.id]*100)+'%');
+    if(mvpPending()&&tieSet[p.id]){var mn=mvpOf(p.id);
+      lines.push(mn?('Wins the tie if '+mvpFace(mn,'ptwmvp')+'<b>'+mn+'</b> is MVP'):'No MVP pick to break the tie');}
+    var root=lines.map(function(L){return '<div class="pl">'+L+'</div>';}).join('');
     rows+='<div class="ptw-row" data-person="'+p.id+'"><img class="pav" src="'+IMAGES.headshots[p.id]+'">'+
       '<div class="pinfo"><div class="pn">'+p.name+'</div><div class="pmeta2">'+P.base[p.id]+' pts · max '+P.max[p.id]+'</div>'+
       '<div class="pbarwrap"><div class="pbar" style="width:'+Math.max(2,w)+'%"></div></div><div class="proot">'+root+'</div></div>'+
